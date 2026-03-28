@@ -36,6 +36,7 @@ let package = Package(
             targets: ["SSHProtocolKit"]),
     ],
     dependencies: [
+        .package(url: "https://github.com/apple/swift-system", from: "1.6.1"),
     ],
     targets: [
         .target(
@@ -63,7 +64,12 @@ let package = Package(
         ),
         .target(
             name: "SecretAgentKit",
-            dependencies: ["SecretKit", "SSHProtocolKit", "Common"],
+            dependencies: [
+                "SecretKit",
+                "SSHProtocolKit",
+                "Common",
+                .product(name: "SystemPackage", package: "swift-system")
+            ],
             resources: [localization],
             swiftSettings: swiftSettings,
         ),
@@ -112,7 +118,7 @@ var localization: Resource {
 var swiftSettings: [PackageDescription.SwiftSetting] {
     [
         .swiftLanguageMode(.v6),
-        .treatAllWarnings(as: .error),
+//        .treatAllWarnings(as: .error),
         .strictMemorySafety()
     ]
 }

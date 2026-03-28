@@ -55,6 +55,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 try? publicKeyFileStoreController.generatePublicKeys(for: storeList.allSecrets, clear: true)
             }
         }
+        let x = ProxiedAgent()
+        Task {
+            await x.test()
+        }
         try? publicKeyFileStoreController.generatePublicKeys(for: storeList.allSecrets, clear: true)
         notifier.prompt()
         _ = withObservationTracking {
