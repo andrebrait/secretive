@@ -20,11 +20,20 @@ let package = Package(
             name: "SmartCardSecretKit",
             targets: ["SmartCardSecretKit"]),
         .library(
+            name: "CertificateKit",
+            targets: ["CertificateKit"]),
+        .library(
             name: "SecretAgentKit",
             targets: ["SecretAgentKit"]),
         .library(
+            name: "Formatters",
+            targets: ["Formatters"]),
+        .library(
             name: "Common",
             targets: ["Common"]),
+        .library(
+            name: "SharedXPCServices",
+            targets: ["SharedXPCServices"]),
         .library(
             name: "Brief",
             targets: ["Brief"]),
@@ -63,13 +72,14 @@ let package = Package(
             swiftSettings: swiftSettings,
         ),
         .target(
+            name: "CertificateKit",
+            dependencies: ["SecretKit", "Formatters"],
+            resources: [localization],
+            swiftSettings: swiftSettings,
+        ),
+        .target(
             name: "SecretAgentKit",
-            dependencies: [
-                "SecretKit",
-                "SSHProtocolKit",
-                "Common",
-                .product(name: "SystemPackage", package: "swift-system")
-            ],
+            dependencies: ["SecretKit", "SSHProtocolKit", "CertificateKit", "Common", "Formatters"],
             resources: [localization],
             swiftSettings: swiftSettings,
         ),
@@ -79,7 +89,7 @@ let package = Package(
         ),
         .target(
             name: "SSHProtocolKit",
-            dependencies: ["SecretKit"],
+            dependencies: ["SecretKit", "CertificateKit"],
             resources: [localization],
             swiftSettings: swiftSettings,
         ),
@@ -89,8 +99,20 @@ let package = Package(
             swiftSettings: swiftSettings,
         ),
         .target(
+            name: "Formatters",
+            dependencies: [],
+            resources: [localization],
+            swiftSettings: swiftSettings,
+        ),
+        .target(
             name: "Common",
             dependencies: ["SSHProtocolKit", "SecretKit"],
+            resources: [localization],
+            swiftSettings: swiftSettings,
+        ),
+        .target(
+            name: "SharedXPCServices",
+            dependencies: ["CertificateKit", "SSHProtocolKit"],
             resources: [localization],
             swiftSettings: swiftSettings,
         ),

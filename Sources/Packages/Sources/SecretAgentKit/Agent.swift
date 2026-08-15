@@ -2,6 +2,7 @@ import Foundation
 import CryptoKit
 import OSLog
 import SecretKit
+import CertificateKit
 import AppKit
 import SSHProtocolKit
 
@@ -9,10 +10,10 @@ import SSHProtocolKit
 public final class Agent: Sendable {
 
     private let storeList: SecretStoreList
+    private let certificateStore: CertificateStore
     private let witness: SigningWitness?
     private let publicKeyWriter = OpenSSHPublicKeyWriter()
     private let signatureWriter = OpenSSHSignatureWriter()
-    private let certificateHandler = OpenSSHCertificateHandler()
     private let logger = Logger(subsystem: "com.maxgoedjen.secretive.secretagent", category: "Agent")
 
     @MainActor private var sessionID: SSHAgent.ProtocolExtension.OpenSSHExtension.SessionBindContext?
@@ -21,13 +22,11 @@ public final class Agent: Sendable {
     /// - Parameters:
     ///   - storeList: The `SecretStoreList` to make available.
     ///   - witness: A witness to notify of requests.
-    public init(storeList: SecretStoreList, witness: SigningWitness? = nil) {
+    public init(storeList: SecretStoreList, certificateStore: CertificateStore, witness: SigningWitness? = nil) {
         logger.debug("Agent is running")
         self.storeList = storeList
+        self.certificateStore = certificateStore
         self.witness = witness
-        Task { @MainActor in
-            await certificateHandler.reloadCertificates(for: storeList.allSecrets)
-        }
     }
     
 }
@@ -96,7 +95,6 @@ extension Agent {
     /// - Returns: An OpenSSH formatted Data payload listing the identities available for signing operations.
     func identities() async -> Data {
         let secrets = await storeList.allSecrets
-        await certificateHandler.reloadCertificates(for: secrets)
         var count = 0
         var keyData = Data()
 
@@ -105,10 +103,9 @@ extension Agent {
             keyData.append(keyBlob.lengthAndData)
             keyData.append(publicKeyWriter.comment(secret: secret).lengthAndData)
             count += 1
-
-            if let (certificateData, name) = try? await certificateHandler.keyBlobAndName(for: secret) {
-                keyData.append(certificateData.lengthAndData)
-                keyData.append(name.lengthAndData)
+            for certificate in await certificateStore.certificates(for: secret) {
+                keyData.append(certificate.data.lengthAndData)
+                keyData.append(certificate.name.lengthAndData)
                 count += 1
             }
         }
@@ -125,7 +122,7 @@ extension Agent {
     /// - Returns: An OpenSSH formatted Data payload containing the signed data response.
     func sign(data: Data, keyBlob: Data, provenance: SigningRequestProvenance) async throws -> Data {
         guard let (secret, store) = await secret(matching: keyBlob) else {
-            let keyBlobHex = keyBlob.compactMap { ("0" + String($0, radix: 16, uppercase: false)).suffix(2) }.joined()
+            let keyBlobHex = keyBlob.formatted(.hex())
             logger.debug("Agent did not have a key matching \(keyBlobHex)")
             throw NoMatchingKeyError()
         }
