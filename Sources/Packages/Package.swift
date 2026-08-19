@@ -45,7 +45,6 @@ let package = Package(
             targets: ["SSHProtocolKit"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-system", from: "1.6.1"),
     ],
     targets: [
         .target(
